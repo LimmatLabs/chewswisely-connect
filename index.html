@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chews Wisely – Connect Facebook Page</title>
+<style>
+  :root {
+    --bg: #f4f6f5; --card: #fff; --ink: #1d2b27; --muted: #5b6b66;
+    --line: #dfe5e2; --accent: #1f7a5c; --accent-ink: #fff;
+    --ok: #17794f; --ok-bg: #e3f4ec; --err: #b3261e; --err-bg: #fbe9e7; --warn-bg: #fff6e0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 0 0 4px; display: flex; gap: 10px; align-items: center; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+          padding: 20px 22px; margin-bottom: 16px; }
+  .card.locked { opacity: .5; pointer-events: none; }
+  .num { background: var(--accent); color: var(--accent-ink); border-radius: 50%;
+         width: 26px; height: 26px; display: inline-grid; place-items: center; font-size: 14px; flex: none; }
+  .caption { color: var(--muted); margin: 0 0 14px; font-size: 15px; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; padding: 10px 18px;
+           border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button.secondary { background: #fff; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 14px; }
+  td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  td:first-child { font-family: ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; padding-right: 14px; }
+  .chip { display: inline-block; padding: 1px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;
+          background: #eceff0; color: var(--muted); white-space: nowrap; }
+  .chip.ok { background: var(--ok-bg); color: var(--ok); }
+  .chip.err { background: var(--err-bg); color: var(--err); }
+  .pages label { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line);
+                 border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+  .pages label:hover { border-color: var(--accent); }
+  .fields { display: flex; gap: 22px; flex-wrap: wrap; margin: 6px 0 16px; }
+  .fields label { display: flex; gap: 8px; align-items: baseline; }
+  .fields small { color: var(--muted); }
+  pre { background: #11201b; color: #d6f2e4; padding: 12px 14px; border-radius: 8px; overflow: auto;
+        font-size: 13px; margin: 12px 0 0; }
+  .note { background: var(--warn-bg); border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-top: 12px; }
+  #log { list-style: none; margin: 0; padding: 0; font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace; max-height: 220px; overflow: auto; }
+  #log li { border-top: 1px solid var(--line); padding: 3px 0; }
+  #log li.ok { color: var(--ok); } #log li.err { color: var(--err); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="fb-root"></div>
+<main>
+  <h1>Chews Wisely – Connect Facebook Page</h1>
+  <p class="sub">Admin setup tool for the app “Dog Food Social Leads API” (Limmat Labs GmbH). Customers never use this page.</p>
+
+  <section class="card">
+    <h2>What this app does</h2>
+    <p class="caption" style="margin:0">
+      The Page admin connects our own Facebook Page “Chews Wisely Dog Food” once, on this page.
+      After that, an automation running on our own server reads new comments on our posts, posts a short public reply
+      as the Page, and sends one private reply (Messenger Private Replies) to people asking about our products.
+      <span id="ig-intro" class="hidden">The same automation also handles comments and direct messages on the Instagram account linked to our Page.</span>
+      This page is only the one-time setup: login, permission grant, Page selection and webhook subscription.
+    </p>
+  </section>
+
+  <!-- STEP 1 -->
+  <section class="card" id="step1">
+    <h2><span class="num">1</span> Log in and grant permissions</h2>
+    <p class="caption">
+      The button below opens the Facebook Login dialog, where the Page admin grants our app the permissions listed here.
+      After login, the status column shows which permissions were granted.
+    </p>
+    <div class="row">
+      <button id="btn-login">Log in with Facebook</button>
+      <span id="who" class="caption" style="margin:0"></span>
+    </div>
+    <table id="perm-table"></table>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card locked" id="step2">
+    <h2><span class="num">2</span> Select the Page</h2>
+    <p class="caption">
+      Uses <code>pages_show_list</code> (and <code>business_management</code>, because the Page belongs to a business portfolio)
+      to list the Pages this admin manages: <code>GET /me/accounts</code>. Select “Chews Wisely Dog Food”.
+    </p>
+    <div id="pages" class="pages"></div>
+    <div id="ig" class="note hidden" style="margin-top:14px"></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card locked" id="step3">
+    <h2><span class="num">3</span> Subscribe the Page to our webhook</h2>
+    <p class="caption">
+      Uses <code>pages_manage_metadata</code>: <code>POST /{page-id}/subscribed_apps</code>.
+      This makes Facebook notify our automation whenever someone comments on a post of our Page.
+      Without this subscription, new comments would not be detected.
+    </p>
+    <div class="fields">
+      <label><input type="checkbox" name="field" value="feed" checked> feed <small>new comments on our posts</small></label>
+      <label><input type="checkbox" name="field" value="messages"> messages <small>optional: direct messages to the Page</small></label>
+    </div>
+    <div class="row">
+      <button id="btn-sub">Subscribe Page to webhook</button>
+      <button id="btn-verify" class="secondary">Check current subscription</button>
+    </div>
+    <pre id="sub-result" class="hidden"></pre>
+  </section>
+
+  <!-- LOG -->
+  <section class="card">
+    <h2>Activity log</h2>
+    <p class="caption">Every Graph API call this page makes, with its result. Access tokens are never shown here.</p>
+    <ul id="log"></ul>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <button class="secondary" id="btn-reset">Start over</button>
+      <span class="caption" style="margin:0">Clears this page's state (nothing is stored in the browser).</span>
+    </div>
+    <details style="margin-top:14px">
+      <summary>Setup only: copy Page access token for the automation</summary>
+      <p class="note">Do not show this on screen while recording. The token is for the server-side automation (n8n credentials).
+        A token obtained this way is short-lived. The automation should exchange it for a long-lived token on the server,
+        because that needs the App Secret, which must never be placed in a web page.</p>
+      <button class="secondary" id="btn-copy" disabled>Copy Page access token</button>
+    </details>
+  </section>
+</main>
+
+<script>
+/* ---------- CONFIG ---------- */
+const CONFIG = {
+  APP_ID: '706138552519552',
+  GRAPH_VERSION: 'v25.0',
+  // Facebook Login for Business needs a Configuration ID
+  // (App Dashboard > Facebook Login for Business > Configurations).
+  // Leave empty to fall back to classic scope-based login.
+  CONFIG_ID: '',
+  PERMISSIONS: {
+    pages_show_list: 'Lists the Pages the admin manages, so the Chews Wisely Page can be selected (step 2).',
+    business_management: 'Required because the Page is owned by a business portfolio; otherwise the Page list is empty.',
+    pages_manage_metadata: 'Subscribes the Page to our webhook (step 3).',
+    pages_read_user_content: 'Reads user comments on our Page posts (text, name, time).',
+    pages_read_engagement: 'Reads our own posts (ID, permalink, type) so a reply fits the post it belongs to.',
+    pages_manage_engagement: 'Posts a short public reply, as the Page, under a user comment.',
+    pages_messaging: 'Sends one private reply (Private Replies) to a user who commented and asked about our products.'
+  },
+  // Instagram permissions: keep ENABLE_INSTAGRAM = false until the separate Instagram review.
+  // Set it to true ONLY after adding these permissions to the Login Configuration.
+  ENABLE_INSTAGRAM: false,
+  INSTAGRAM_PERMISSIONS: {
+    instagram_basic: 'Reads the basic profile (ID, username) of the Instagram professional account linked to our Page (step 2).',
+    instagram_manage_comments: 'Reads comments on our own Instagram posts and posts a short reply as our Instagram account.',
+    instagram_manage_messages: 'Receives direct messages sent to our Instagram account and replies to them.'
+  }
+};
+if (CONFIG.ENABLE_INSTAGRAM) Object.assign(CONFIG.PERMISSIONS, CONFIG.INSTAGRAM_PERMISSIONS);
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const state = { page: null };
+
+function log(msg, kind) {
+  const li = document.createElement('li');
+  li.textContent = new Date().toLocaleTimeString('en-GB') + '  ' + msg;
+  if (kind) li.className = kind;
+  $('log').prepend(li);
+}
+function graph(path, method, params) {
+  return new Promise(resolve => FB.api(path, method || 'GET', params || {}, resolve));
+}
+function errText(r) { return (r && r.error && r.error.message) ? r.error.message : 'unknown error'; }
+
+/* ---------- permission table ---------- */
+function buildPermTable() {
+  const t = $('perm-table');
+  Object.entries(CONFIG.PERMISSIONS).forEach(([name, why]) => {
+    const tr = document.createElement('tr');
+    tr.dataset.perm = name;
+    const a = document.createElement('td'); a.textContent = name;
+    const b = document.createElement('td'); b.textContent = why;
+    const c = document.createElement('td');
+    const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = 'not requested yet';
+    c.appendChild(chip);
+    tr.append(a, b, c); t.appendChild(tr);
+  });
+}
+function renderPerms(list) {
+  const map = {}; (list || []).forEach(p => map[p.permission] = p.status);
+  document.querySelectorAll('#perm-table tr').forEach(tr => {
+    const chip = tr.querySelector('.chip'); const s = map[tr.dataset.perm];
+    if (s === 'granted') { chip.className = 'chip ok'; chip.textContent = 'Granted'; }
+    else { chip.className = 'chip err'; chip.textContent = s ? s : 'Not granted'; }
+  });
+}
+
+/* ---------- login ---------- */
+function loginOptions() {
+  if (CONFIG.CONFIG_ID) return { config_id: CONFIG.CONFIG_ID };
+  return { scope: Object.keys(CONFIG.PERMISSIONS).join(','), return_scopes: true };
+}
+function onLogin() {
+  log('Opening the Facebook Login dialog …');
+  FB.login(resp => {
+    if (!resp || !resp.authResponse) { log('Login was cancelled or not completed.', 'err'); return; }
+    log('Login completed. Permissions were granted by the admin.', 'ok');
+    afterLogin();
+  }, loginOptions());
+}
+async function afterLogin() {
+  const me = await graph('/me', 'GET', { fields: 'name' });
+  if (!me.error) $('who').textContent = 'Logged in as ' + me.name;
+
+  const perms = await graph('/me/permissions');
+  if (perms.error) { log('GET /me/permissions failed: ' + errText(perms), 'err'); }
+  else {
+    const granted = perms.data.filter(p => p.status === 'granted').length;
+    log('GET /me/permissions → ' + granted + ' permissions granted', 'ok');
+    renderPerms(perms.data);
+  }
+
+  const acc = await graph('/me/accounts', 'GET', { fields: 'id,name,access_token', limit: 100 });
+  if (acc.error) { log('GET /me/accounts failed: ' + errText(acc), 'err'); return; }
+  log('GET /me/accounts → ' + acc.data.length + ' Page(s) returned', acc.data.length ? 'ok' : 'err');
+  renderPages(acc.data);
+}
+
+/* ---------- pages ---------- */
+function renderPages(pages) {
+  const box = $('pages'); box.textContent = '';
+  $('step2').classList.remove('locked');
+  if (!pages.length) {
+    box.textContent = 'No Pages returned. The account must manage the Page, and pages_show_list and business_management must be granted.';
+    return;
+  }
+  pages.forEach(p => {
+    const label = document.createElement('label');
+    const radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'page';
+    radio.onchange = () => selectPage(p);
+    const span = document.createElement('span'); span.textContent = p.name + '  (ID ' + p.id + ')';
+    label.append(radio, span); box.appendChild(label);
+  });
+}
+function selectPage(p) {
+  state.page = p;
+  log('Page selected: ' + p.name, 'ok');
+  $('step3').classList.remove('locked');
+  $('btn-copy').disabled = false;
+  if (CONFIG.ENABLE_INSTAGRAM) loadInstagram(p);
+}
+
+/* Instagram professional account linked to the selected Page (instagram_basic) */
+async function loadInstagram(p) {
+  const box = $('ig'); box.classList.remove('hidden'); box.textContent = 'Checking for a linked Instagram account …';
+  const r = await graph('/' + p.id, 'GET',
+    { fields: 'instagram_business_account{id,username}', access_token: p.access_token });
+  if (r.error) { box.textContent = 'Instagram lookup failed: ' + errText(r); log('GET /' + p.id + '?fields=instagram_business_account failed: ' + errText(r), 'err'); return; }
+  const ig = r.instagram_business_account;
+  if (!ig) {
+    box.textContent = 'No Instagram professional account is linked to this Page.';
+    log('GET /' + p.id + '?fields=instagram_business_account → none linked', 'err');
+    return;
+  }
+  box.textContent = 'Linked Instagram account: @' + ig.username + '  (ID ' + ig.id + ')';
+  log('GET /' + p.id + '?fields=instagram_business_account → @' + ig.username, 'ok');
+}
+
+/* ---------- subscribe / verify ---------- */
+function showResult(obj) {
+  const pre = $('sub-result'); pre.classList.remove('hidden');
+  pre.textContent = JSON.stringify(obj, null, 2);
+}
+async function verify() {
+  if (!state.page) return;
+  const r = await graph('/' + state.page.id + '/subscribed_apps', 'GET', { access_token: state.page.access_token });
+  if (r.error) { log('GET /subscribed_apps failed: ' + errText(r), 'err'); showResult({ error: r.error.message }); return; }
+  const mine = (r.data || []).find(a => a.id === CONFIG.APP_ID);
+  const fields = mine ? (mine.subscribed_fields || []).join(', ') : 'none';
+  log('GET /' + state.page.id + '/subscribed_apps → active fields: ' + fields, mine ? 'ok' : 'err');
+  showResult(r);
+}
+async function subscribe() {
+  if (!state.page) return;
+  const fields = [...document.querySelectorAll('input[name=field]:checked')].map(i => i.value);
+  if (!fields.length) { log('Select at least one field.', 'err'); return; }
+  log('POST /' + state.page.id + '/subscribed_apps (subscribed_fields=' + fields.join(',') + ') …');
+  const r = await graph('/' + state.page.id + '/subscribed_apps', 'POST',
+    { subscribed_fields: fields.join(','), access_token: state.page.access_token });
+  if (r.error) { log('Subscription failed: ' + errText(r), 'err'); showResult({ error: r.error.message }); return; }
+  log('Subscription result: success = ' + r.success, r.success ? 'ok' : 'err');
+  showResult(r);
+  if (r.success) verify();
+}
+
+/* ---------- wiring ---------- */
+buildPermTable();
+if (CONFIG.ENABLE_INSTAGRAM) $('ig-intro').classList.remove('hidden');
+$('btn-login').onclick = onLogin;
+$('btn-sub').onclick = subscribe;
+$('btn-verify').onclick = verify;
+$('btn-reset').onclick = () => location.reload();
+$('btn-copy').onclick = async () => {
+  if (!state.page) return;
+  try { await navigator.clipboard.writeText(state.page.access_token); log('Page access token copied to clipboard.', 'ok'); }
+  catch (e) { log('Copy failed: ' + e.message, 'err'); }
+};
+
+window.fbAsyncInit = function () {
+  FB.init({ appId: CONFIG.APP_ID, cookie: true, xfbml: false, version: CONFIG.GRAPH_VERSION });
+  log('Facebook SDK loaded.');
+};
+(function (d, s, id) {
+  if (d.getElementById(id)) return;
+  const js = d.createElement(s); js.id = id; js.async = true;
+  js.src = 'https://connect.facebook.net/en_US/sdk.js';
+  d.head.appendChild(js);
+})(document, 'script', 'facebook-jssdk');
+</script>
+</body>
+</html>
